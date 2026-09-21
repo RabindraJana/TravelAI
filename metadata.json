@@ -1,0 +1,6 @@
+{
+  "name": "Travel AI",
+  "description": "Intelligent travel planner, living journal, and public guider powered by Gemini AI. Plan express rail journeys, collect travel stories, and make every trip happen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
