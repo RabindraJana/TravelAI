@@ -373,3 +373,68 @@ export async function generateSocialSummaryWithGemini(
     };
   }
 }
+
+export interface GenerateAiCardParams {
+  targetSection: 'journal' | 'profile' | 'community';
+  authorName?: string;
+  authorRole?: string;
+  destination?: string;
+  regionOrGroup?: string;
+  notes?: string;
+  favoriteFood?: string;
+  isVerified?: boolean;
+  badgeText?: string;
+}
+
+export async function generateAiTravelCardWithGemini(
+  params: GenerateAiCardParams
+): Promise<{ success: boolean; card: any; isAiGenerated: boolean; model: string }> {
+  try {
+    const res = await fetch('/api/gemini/generate-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await res.json();
+    if (data && data.card) {
+      return {
+        success: true,
+        card: data.card,
+        isAiGenerated: Boolean(data.isAiGenerated),
+        model: data.model || 'gemini-flash-latest',
+      };
+    }
+    throw new Error(data?.error || 'Failed to generate card');
+  } catch (err) {
+    console.warn('generateAiTravelCardWithGemini client fallback:', err);
+    const dest = params.destination || 'Jharkhand Plateau';
+    const isJh = dest.toLowerCase().includes('jharkhand') || dest.toLowerCase().includes('ranchi');
+    return {
+      success: true,
+      card: {
+        id: `ai-card-${Date.now()}`,
+        title: isJh ? 'Jharkhand Heritage & Sal Forest Passport' : `${dest} Explorer Card`,
+        category: params.targetSection === 'journal' ? 'journal_summary' : 'profile_passport',
+        targetSection: params.targetSection,
+        authorName: params.authorName || 'Explorer',
+        authorRole: params.authorRole || 'Verified Member',
+        destination: dest,
+        regionOrGroup: params.regionOrGroup || 'Jharkhand Explorer Group',
+        vibeQuote: isJh
+          ? 'Across the sal forests and roaring cascades of Chotanagpur, authentic hospitality and steaming Dhuska welcome the traveler.'
+          : `Walking through authentic paths and discovering timeless traditions in ${dest}.`,
+        highlights: isJh
+          ? ['Koel View Sunrise Point', 'Upper Bazaar Hot Dhuska', 'Dassam Falls Trek', 'Vande Bharat Mountain Views']
+          : ['Historic Routes', 'Local Street Foods', 'Sunset Vantage Points'],
+        favoriteFood: params.favoriteFood || (isJh ? 'Crispy Dhuska with spicy Chana Ghugni' : 'Local regional thali'),
+        verifiedStamp: true,
+        badgeText: params.badgeText || 'Verified Explorer Member',
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        isSharedToFeed: true,
+      },
+      isAiGenerated: false,
+      model: 'travel-ai-engine',
+    };
+  }
+}
+

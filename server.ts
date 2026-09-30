@@ -1014,6 +1014,137 @@ Rules:
   }
 });
 
+// Endpoint: Generate AI Travel / Journal / Profile Shareable Card via Gemini
+app.post('/api/gemini/generate-card', async (req: Request, res: Response) => {
+  try {
+    const {
+      targetSection = 'journal',
+      authorName = 'Explorer',
+      authorRole = 'Traveler',
+      destination = 'Jharkhand & Chotanagpur Plateau',
+      regionOrGroup = 'Jharkhand Explorer Group',
+      notes = '',
+      favoriteFood = 'Dhuska & Chana Ghugni',
+      isVerified = true,
+      badgeText = 'Verified Explorer Member',
+    } = req.body;
+
+    const ai = getGeminiClient();
+
+    if (ai) {
+      try {
+        const prompt = `You are a creative travel storyteller and designer of verified community travel cards.
+Generate a shareable, high-trust travel card for:
+- Target Section: ${targetSection} (either 'journal' or 'profile')
+- Author: ${authorName} (${authorRole})
+- Destination: ${destination}
+- Region / Group: ${regionOrGroup}
+- User Notes / Memories: "${notes}"
+- Preferred Food: ${favoriteFood}
+- Verified Badge: ${isVerified ? badgeText : 'Standard Traveler'}
+
+Task:
+Synthesize an evocative travel card with:
+1. "title": A catchy, aesthetic card title (e.g. "Jharkhand Waterfalls & Misty Sal Forest Passport" or "Cross-Kangsabati Rail & Sweet Corridor Summary")
+2. "vibeQuote": A 1-2 sentence atmospheric, poetic quote about this journey or regional food/heritage.
+3. "highlights": 3 to 4 short highlights (3-6 words each) e.g., ["Koel Viewpoint Sunrise", "Upper Bazaar Hot Dhuska", "Dassam Falls Trek", "Plateau Forest Express"]
+4. "favoriteFood": 1 distinct regional food recommendation with sensory description.
+5. "badgeText": The verified badge text for trust.
+
+Return ONLY a strict JSON object with NO extra text or markdown:
+{
+  "title": "...",
+  "vibeQuote": "...",
+  "highlights": ["...", "...", "..."],
+  "favoriteFood": "...",
+  "badgeText": "${badgeText}"
+}
+`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: prompt,
+        });
+
+        const rawText = response.text || '';
+        const cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        if (parsed && parsed.title) {
+          return res.json({
+            success: true,
+            isAiGenerated: true,
+            model: 'gemini-flash-latest',
+            card: {
+              id: `ai-card-${Date.now()}`,
+              title: parsed.title,
+              category: targetSection === 'journal' ? 'journal_summary' : 'profile_passport',
+              targetSection,
+              authorName,
+              authorRole,
+              destination,
+              regionOrGroup,
+              vibeQuote: parsed.vibeQuote || 'Wandering where the heart finds quiet resonance.',
+              highlights: Array.isArray(parsed.highlights) ? parsed.highlights : ['Scenic vistas', 'Local food', 'Historic routes'],
+              favoriteFood: parsed.favoriteFood || favoriteFood,
+              verifiedStamp: Boolean(isVerified),
+              badgeText: parsed.badgeText || badgeText,
+              createdAt: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+              isSharedToFeed: true,
+            },
+          });
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini card generation error, using dynamic local engine:', geminiErr);
+      }
+    }
+
+    // Dynamic smart local fallback
+    const isJharkhand = destination.toLowerCase().includes('jharkhand') || regionOrGroup.toLowerCase().includes('jharkhand') || destination.toLowerCase().includes('ranchi');
+    const isBengal = destination.toLowerCase().includes('bengal') || destination.toLowerCase().includes('medinipur') || destination.toLowerCase().includes('kharagpur');
+
+    const card = {
+      id: `ai-card-${Date.now()}`,
+      title: isJharkhand
+        ? 'Jharkhand Heritage & Sal Forest Passport'
+        : isBengal
+        ? 'Cross-Kangsabati Rail & Sweet Corridor Summary'
+        : `${destination} Explorer Passport`,
+      category: targetSection === 'journal' ? ('journal_summary' as const) : ('profile_passport' as const),
+      targetSection: targetSection as 'journal' | 'profile' | 'community',
+      authorName,
+      authorRole,
+      destination,
+      regionOrGroup,
+      vibeQuote: isJharkhand
+        ? 'Across the sal forests and roaring cascades of Chotanagpur, authentic hospitality and steaming Dhuska welcome the curious traveler.'
+        : isBengal
+        ? 'Between the whistling express trains and the sweet scent of caramelized Chhana-boda along the riverbank.'
+        : `Unfolding authentic paths and local community stories across ${destination}.`,
+      highlights: isJharkhand
+        ? ['Koel View Sunrise at 5:15 AM', 'Upper Bazaar Hot Dhuska', 'Dassam & Hundru Falls Trek', 'Vande Bharat Mountain Corridor']
+        : isBengal
+        ? ['Rupashi Bangla Rail Crossing', 'Gopegarh Heritage Eco-Park', 'Battala Chhana-boda', 'Karnagarh Mahamaya Ruins']
+        : ['Historic Heritage Trails', 'Local Artisans & Bazaars', 'Regional Flavors', 'Scenic Sunset Vantage'],
+      favoriteFood: isJharkhand ? 'Crispy Dhuska with spicy Chana Ghugni & Rugra' : isBengal ? 'Caramelized Medinipur Chhana-boda' : favoriteFood,
+      verifiedStamp: Boolean(isVerified),
+      badgeText,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      isSharedToFeed: true,
+    };
+
+    return res.json({
+      success: true,
+      isAiGenerated: false,
+      model: 'travel-ai-engine',
+      card,
+    });
+  } catch (error: any) {
+    console.error('generate-card error:', error);
+    return res.status(500).json({ error: 'Failed to generate card' });
+  }
+});
+
 // 4. Vite middleware (Dev) or Static Assets (Prod)
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

@@ -1,5 +1,7 @@
 export type ScreenType =
   | 'dashboard'
+  | 'host-dashboard'
+  | 'guider-dashboard'
   | 'planner'
   | 'trips'
   | 'journal'
@@ -7,7 +9,8 @@ export type ScreenType =
   | 'community'
   | 'map'
   | 'achievements'
-  | 'goals';
+  | 'goals'
+  | 'profile';
 
 export type TransitionType = 'none' | 'push';
 
@@ -155,11 +158,14 @@ export interface UserPreferences {
   name: string;
   avatar: string;
   homeCity: string;
+  livingState?: string;
   currency: string;
   travelStyle: 'budget' | 'balanced' | 'luxury' | 'adventure';
   pace: 'relaxed' | 'moderate' | 'fast';
   dietary: 'all' | 'veg' | 'vegan' | 'halal' | 'jain';
   notificationsEnabled: boolean;
+  verificationStatus?: VerificationStatusType;
+  verifiedAt?: string;
 }
 
 export type TravelBadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
@@ -308,5 +314,300 @@ export interface JournalEntry {
   currentTripName?: string;
   coordinates?: { lat: number; lng: number };
 }
+
+export type VerificationStatusType = 'unverified' | 'pending' | 'verified' | 'rejected';
+
+export type GovernmentIdType =
+  | 'aadhaar'
+  | 'passport'
+  | 'voter_id'
+  | 'driving_license'
+  | 'national_id';
+
+export interface VerificationApplication {
+  id: string;
+  userId: string;
+  userName: string;
+  legalName: string;
+  idType: GovernmentIdType;
+  maskedIdNumber: string; // Sensitive full ID is never stored insecurely or displayed publicly
+  documentFrontUrl?: string;
+  documentBackUrl?: string;
+  livingState: string;
+  livingCity: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  status: VerificationStatusType;
+  adminNotes?: string;
+  verifiedBadgeTitle: string; // e.g. "Govt ID Verified Host & Explorer"
+}
+
+export interface HostingOffer {
+  canHost: boolean;
+  livingState: string;
+  livingCity: string;
+  homeType: string;
+  maxGuests: number;
+  houseRules: string[];
+  canGuideWalks: boolean; // Meet for chai & local heritage walk
+  canHelpRailways: boolean; // Station & train connection assistance
+  languages: string[];
+  bioIntro: string;
+  trustNote: string;
+}
+
+export interface TravelerVouch {
+  id: string;
+  authorName: string;
+  authorAvatar: string;
+  authorLocation: string;
+  date: string;
+  relationship: 'hosted_me' | 'traveled_together' | 'local_meetup' | 'station_guide';
+  comment: string;
+  verifiedTrip?: string;
+  rating: number;
+  aspects?: string[];
+  hostReply?: string;
+  hostReplyDate?: string;
+  helpfulCount?: number;
+}
+
+export interface FullUserProfile extends UserPreferences {
+  id: string;
+  bio: string;
+  verificationStatus: VerificationStatusType;
+  verifiedAt?: string;
+  verifiedBadgeTitle?: string;
+  verifiedIdType?: GovernmentIdType;
+  maskedIdPreview?: string;
+  livingState: string;
+  livingCity: string;
+  hosting: HostingOffer;
+  trustScore: number; // e.g. 98%
+  journeysCount: number;
+  peopleHelpedCount: number;
+  guidesPublishedCount: number;
+  vouches: TravelerVouch[];
+  isAdmin?: boolean;
+}
+
+export type UserRole = 'admin' | 'user' | 'guider';
+
+export interface GuiderTour {
+  id: string;
+  title: string;
+  category: string;
+  duration: string;
+  meetingPoint: string;
+  pricePerPerson: number;
+  maxGroupSize: number;
+  bookedCount: number;
+  languages: string[];
+  scheduleTime: string;
+  status: 'upcoming' | 'in_progress' | 'completed';
+  highlights: string[];
+  registeredTravelers: {
+    id: string;
+    name: string;
+    avatar: string;
+    phone: string;
+    partySize: number;
+    specialRequest?: string;
+  }[];
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  avatar: string;
+  homeCity: string;
+  livingState?: string;
+  bio?: string;
+  verificationStatus: VerificationStatusType;
+  verifiedBadgeTitle?: string;
+  isAdmin: boolean;
+  isGuider?: boolean;
+  guiderBadge?: string;
+  guiderSpecialty?: string;
+  guiderRating?: number;
+  guiderToursCount?: number;
+  guiderLanguages?: string[];
+  travelStyle?: string;
+  pace?: string;
+  currency?: string;
+  tripsCount?: number;
+  travelLevel?: string;
+}
+
+export type HostServiceType = 'homestay' | 'guided_walk' | 'bengal_meals' | 'station_transfer';
+
+export interface HostTripRequest {
+  id: string;
+  travelerId: string;
+  travelerName: string;
+  travelerAvatar: string;
+  travelerCity: string;
+  travelerEmail: string;
+  isVerified: boolean;
+  verifiedBadgeTitle?: string;
+  checkInDate: string;
+  checkOutDate: string;
+  durationNights: number;
+  guestsCount: number;
+  purpose: string;
+  servicesRequested: HostServiceType[];
+  nightlyRate: number;
+  totalAmount: number;
+  currency: string;
+  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  requestNote: string;
+  submittedAt: string;
+  hostResponseNote?: string;
+  paymentStatus: 'escrow' | 'paid' | 'pending' | 'refunded';
+}
+
+export interface HostEarningsSummary {
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  lastMonthRevenue: number;
+  pendingPayout: number;
+  completedPayoutsCount: number;
+  averageBookingValue: number;
+  currency: string;
+  breakdown: {
+    category: string;
+    amount: number;
+    percentage: number;
+    color: string;
+    icon: string;
+  }[];
+  monthlyData: {
+    month: string;
+    amount: number;
+    bookings: number;
+  }[];
+  recentTransactions: {
+    id: string;
+    date: string;
+    guestName: string;
+    service: string;
+    amount: number;
+    status: 'payout_completed' | 'processing' | 'escrow';
+    payoutMethod: string;
+  }[];
+}
+
+// ---------------------------------------------------------------------------
+// Community Pillar 1 & 2: Social Photo/Food Posts & Public User Directory
+// ---------------------------------------------------------------------------
+
+export type CommunityCategory = 'all' | 'food' | 'scenic' | 'heritage' | 'tips';
+
+export interface SocialPhotoPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorHandle: string;
+  authorAvatar: string;
+  authorBadge?: string;
+  isVerified: boolean;
+  groupAffiliation: string; // e.g. 'Jharkhand Explorer Group', 'West Bengal Corridors'
+  stateTag: string; // 'Jharkhand' | 'West Bengal' | 'Himachal Pradesh' | 'Rajasthan' | etc.
+  photoUrl: string;
+  caption: string;
+  foodOrDishName?: string;
+  location: string;
+  type: 'food' | 'scenic' | 'heritage' | 'tips';
+  likesCount: number;
+  liked: boolean;
+  comments: {
+    id: string;
+    author: string;
+    avatar: string;
+    text: string;
+    timeAgo: string;
+  }[];
+  timestamp: string;
+  tags: string[];
+}
+
+export interface CommunityDirectoryUser {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  bio: string;
+  location: string;
+  state: string; // e.g. 'Jharkhand', 'West Bengal', 'Himachal Pradesh'
+  groups: string[]; // e.g. ['Jharkhand Explorer Group', 'Chotanagpur Heritage Club']
+  isVerified: boolean;
+  verificationBadge: string; // e.g. 'Govt ID Verified Local', 'Jharkhand Certified Host'
+  trustScore: number; // e.g. 98
+  followersCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  photosCount: number;
+  specialties: string[];
+  role: 'traveler' | 'local_resident' | 'guider' | 'host';
+  friendInfoTip?: string; // Information shared when they accept a friend request
+}
+
+export interface PlanningCard {
+  id: string;
+  title: string;
+  corridor: string;
+  state: string;
+  durationDays: number;
+  budget: string;
+  highlights: string[];
+  transitMode: string;
+  notes: string;
+}
+
+export interface PlanningCardShareRequest {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  senderCity: string;
+  recipientId: string;
+  recipientName: string;
+  recipientAvatar: string;
+  recipientGroup: string;
+  recipientBadge: string;
+  planningCard: PlanningCard;
+  requestMessage: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;
+  friendInformationReply?: {
+    acceptedAt: string;
+    tips: string[];
+    localContactPhone?: string;
+    secretSpot: string;
+    foodRecommendation: string;
+    transitGuidance: string;
+  };
+}
+
+export interface AiTravelCard {
+  id: string;
+  title: string;
+  category: 'journal_summary' | 'profile_passport' | 'foodie_badge' | 'regional_vibe';
+  targetSection: 'journal' | 'profile' | 'community';
+  authorName: string;
+  authorRole: string;
+  destination: string;
+  regionOrGroup: string;
+  vibeQuote: string;
+  highlights: string[];
+  favoriteFood: string;
+  verifiedStamp: boolean;
+  badgeText: string;
+  createdAt: string;
+  isSharedToFeed: boolean;
+}
+
 
 

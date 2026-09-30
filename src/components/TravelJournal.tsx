@@ -10,6 +10,7 @@ import {
 import { getStoredTrips } from '../utils/tripStorage';
 import { suggestJournalTitle } from '../utils/geminiClient';
 import { ShareJournalModal } from './ShareJournalModal';
+import { AiTravelCardModal } from './AiTravelCardModal';
 
 interface TravelJournalProps {
   onNavigate: (screen: ScreenType, transition?: TransitionType) => void;
@@ -65,6 +66,7 @@ export const TravelJournal: React.FC<TravelJournalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [sharingEntry, setSharingEntry] = useState<JournalEntry | null>(null);
+  const [showAiCardModal, setShowAiCardModal] = useState(false);
 
   // Deep-link auto opening of shared journal entry
   useEffect(() => {
@@ -511,6 +513,15 @@ export const TravelJournal: React.FC<TravelJournalProps> = ({
               >
                 <span className="material-symbols-outlined text-[18px]">edit_note</span>
                 <span>Write New Journal / Public Guide</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAiCardModal(true)}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#00685f] to-[#00a896] hover:from-[#00534c] hover:to-[#008378] text-white text-[13px] sm:text-[14px] font-extrabold flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer ring-2 ring-[#a4f2cb]/50"
+              >
+                <span className="material-symbols-outlined text-[19px]">auto_awesome</span>
+                <span>✨ AI Travel Card Synthesizer</span>
               </button>
 
               <button
@@ -1858,6 +1869,14 @@ export const TravelJournal: React.FC<TravelJournalProps> = ({
             onShowToast={onShowToast}
           />
         )}
+
+        {/* AI TRAVEL CARD MODAL */}
+        <AiTravelCardModal
+          isOpen={showAiCardModal}
+          onClose={() => setShowAiCardModal(false)}
+          targetSection="journal"
+          onShowToast={onShowToast || (() => {})}
+        />
       </div>
     </main>
   );

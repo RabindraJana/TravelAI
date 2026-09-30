@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScreenType, TransitionType } from '../types';
+import { ScreenType, TransitionType, AuthUser } from '../types';
 
 interface SidebarProps {
   currentScreen: ScreenType;
@@ -7,6 +7,11 @@ interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   onOpenSettings?: () => void;
+  currentUser?: AuthUser;
+  onOpenAuthModal?: (initialTab?: 'user' | 'guider' | 'admin') => void;
+  onQuickSwitchRole?: () => void;
+  onViewLandingPage?: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -15,7 +20,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose,
   onOpenSettings,
+  currentUser,
+  onOpenAuthModal,
+  onQuickSwitchRole,
+  onViewLandingPage,
+  onLogout,
 }) => {
+  const isAdmin = currentUser?.role === 'admin';
+  const isGuider = currentUser?.role === 'guider';
   const handleNavClick = (screen: ScreenType) => {
     onNavigate(screen, 'none');
     if (onClose) onClose();
@@ -165,14 +177,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.preventDefault();
                 handleNavClick('community');
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-semibold text-[14px] ${
+              className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all font-semibold text-[14px] ${
                 currentScreen === 'community'
                   ? 'bg-[#008378] text-white shadow-sm'
                   : 'text-[#3d4947] hover:bg-[#e2e7ff] hover:text-[#131b2e]'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">group</span>
-              <span>Community</span>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">groups</span>
+                <span>Community &amp; Feed</span>
+              </div>
+              <span
+                className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded ${
+                  currentScreen === 'community' ? 'bg-white/20 text-white' : 'bg-[#e2fced] text-[#006947]'
+                }`}
+              >
+                Jharkhand
+              </span>
             </a>
 
             <a
@@ -228,54 +249,171 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="material-symbols-outlined text-[20px]">flag</span>
               <span>2027 Goals</span>
             </a>
+
+            <a
+              href="#profile"
+              data-path="profile"
+              aria-current={currentScreen === 'profile' ? 'page' : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick('profile');
+              }}
+              className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all font-semibold text-[14px] ${
+                currentScreen === 'profile'
+                  ? 'bg-[#008378] text-white shadow-sm'
+                  : 'text-[#3d4947] hover:bg-[#e2e7ff] hover:text-[#131b2e]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">person</span>
+                <span>My Traveler Profile</span>
+              </div>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  currentScreen === 'profile'
+                    ? 'bg-white/20 text-white'
+                    : currentUser?.verificationStatus === 'verified'
+                    ? 'bg-[#006947]/10 text-[#006947]'
+                    : 'bg-[#ff9900]/10 text-[#c26200]'
+                }`}
+              >
+                {currentUser?.verificationStatus === 'verified' ? 'Verified' : 'Upgrade ID'}
+              </span>
+            </a>
+
+            {onViewLandingPage && (
+              <a
+                href="#landing"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onClose) onClose();
+                  onViewLandingPage();
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-semibold text-[14px] text-[#00685f] hover:bg-[#00685f]/10"
+              >
+                <span className="material-symbols-outlined text-[20px]">home</span>
+                <span>Landing Page</span>
+              </a>
+            )}
           </nav>
         </div>
 
         {/* User profile & Settings */}
         <div className="p-4 space-y-2 bg-[#f2f3ff] border-t border-[#eaedff]">
           <div
-            onClick={onOpenSettings}
+            onClick={() => handleNavClick('profile')}
             className="flex items-center justify-between p-2 rounded-xl bg-[#ffffff] shadow-xs cursor-pointer hover:ring-2 hover:ring-[#00685f]/30 transition-all"
+            title={isAdmin ? 'View Full Host Profile & Workspace' : 'View Your Explorer Profile'}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <img
                 alt="Profile"
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-[#00685f]/20"
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                className={`w-8 h-8 rounded-full object-cover ring-2 ${
+                  isAdmin ? 'ring-[#00685f]/30' : isGuider ? 'ring-[#0284c7]/30' : 'ring-[#006947]/20'
+                }`}
+                src={
+                  currentUser?.avatar ||
+                  (isAdmin
+                    ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+                    : isGuider
+                    ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+                    : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80')
+                }
               />
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="font-semibold text-[14px] text-[#131b2e]">Aarav Patel</span>
-                  <span className="material-symbols-outlined text-[#00685f] text-[14px]">verified</span>
+                  <span className="font-semibold text-[13px] text-[#131b2e] truncate">
+                    {currentUser?.name || (isAdmin ? 'Rabindra Jana' : isGuider ? 'Subhashish Roy' : 'Explorer')}
+                  </span>
+                  <span
+                    className={`material-symbols-outlined text-[15px] ${
+                      isAdmin ? 'text-[#00685f]' : isGuider ? 'text-[#0284c7]' : 'text-[#006947]'
+                    }`}
+                    title={isAdmin ? 'Verified Host & Admin' : isGuider ? 'Certified Guider' : 'Explorer Member'}
+                  >
+                    {isAdmin ? 'verified' : isGuider ? 'verified' : 'check_circle'}
+                  </span>
                 </div>
-                <span className="text-[12px] text-[#9d4300] font-semibold">4.9 ★</span>
+                <span
+                  className={`text-[11px] font-semibold truncate ${
+                    isAdmin ? 'text-[#00685f]' : isGuider ? 'text-[#0284c7]' : 'text-[#717b79]'
+                  }`}
+                >
+                  {isAdmin ? 'Living State Host & Admin' : isGuider ? 'Certified Heritage Guider' : 'Solo Explorer'}
+                </span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[16px] text-[#3d4947]">tune</span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenSettings) onOpenSettings();
+              }}
+              className="p-1 rounded-lg hover:bg-[#f2f3ff] material-symbols-outlined text-[18px] text-[#3d4947]"
+              title="Settings"
+            >
+              tune
+            </span>
           </div>
 
-          <div className="flex items-center justify-between px-2 pt-1">
+          <div className="flex items-center justify-between px-2 pt-1 text-[12px]">
+            {isAdmin ? (
+              <button
+                className="flex items-center gap-1 text-[#00685f] hover:underline font-semibold cursor-pointer"
+                onClick={() => {
+                  if (onQuickSwitchRole) onQuickSwitchRole();
+                }}
+                title="Preview regular traveler view"
+              >
+                <span className="material-symbols-outlined text-[15px]">visibility</span>
+                <span>Traveler View</span>
+              </button>
+            ) : isGuider ? (
+              <button
+                className="flex items-center gap-1 text-[#0284c7] hover:underline font-semibold cursor-pointer"
+                onClick={() => {
+                  handleNavClick('dashboard');
+                }}
+                title="Preview regular traveler view"
+              >
+                <span className="material-symbols-outlined text-[15px]">visibility</span>
+                <span>Traveler View</span>
+              </button>
+            ) : (
+              <button
+                className="flex items-center gap-1 text-[#00685f] hover:underline font-semibold cursor-pointer"
+                onClick={() => {
+                  if (onOpenAuthModal) onOpenAuthModal('user');
+                }}
+                title="Account sign in"
+              >
+                <span className="material-symbols-outlined text-[15px]">login</span>
+                <span>Sign In</span>
+              </button>
+            )}
+
             <button
-              className="flex items-center gap-1 text-[#3d4947] hover:text-[#131b2e] text-[12px] font-medium transition-colors cursor-pointer"
-              data-path="settings"
+              className="flex items-center gap-1 text-[#3d4947] hover:text-[#131b2e] font-medium cursor-pointer"
               onClick={() => {
-                if (onOpenSettings) onOpenSettings();
-                if (onClose) onClose();
+                if (onOpenAuthModal) onOpenAuthModal('user');
               }}
             >
-              <span className="material-symbols-outlined text-[18px]">settings</span>
-              <span>Settings</span>
+              <span className="material-symbols-outlined text-[15px]">swap_horiz</span>
+              <span>Account</span>
             </button>
-            <button
-              className="flex items-center gap-1 text-[#3d4947] hover:text-[#00685f] text-[12px] font-medium transition-colors cursor-pointer"
-              data-path="pwa"
-              onClick={() => {
-                if (onOpenSettings) onOpenSettings();
-              }}
-            >
-              <span className="material-symbols-outlined text-[18px]">verified_user</span>
-              <span>Preferences</span>
-            </button>
+
+            {onLogout && (
+              <button
+                className="flex items-center gap-1 text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                onClick={() => {
+                  if (onClose) onClose();
+                  onLogout();
+                }}
+                title="Sign out and return to landing page"
+              >
+                <span className="material-symbols-outlined text-[15px]">logout</span>
+                <span>Sign Out</span>
+              </button>
+            )}
           </div>
         </div>
       </aside>

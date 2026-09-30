@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPreferences } from '../types';
+import { VerificationStatus } from './VerificationStatus';
+import { VerificationModal } from './VerificationModal';
+import { getStoredUserProfile } from '../utils/profileStorage';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,6 +21,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<UserPreferences>(preferences);
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'data'>('profile');
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Sync with freshest stored profile verification data
+    const profile = getStoredUserProfile();
+    setFormData((prev) => ({
+      ...prev,
+      verificationStatus: profile.verificationStatus,
+      verifiedAt: profile.verifiedAt,
+      livingState: profile.livingState,
+    }));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -127,14 +142,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   alt={formData.name}
                   className="w-14 h-14 rounded-full object-cover ring-2 ring-[#00685f]/30"
                 />
-                <div>
+                <div className="flex-1">
                   <h4 className="text-[14px] font-bold text-[#131b2e]">{formData.name}</h4>
                   <p className="text-[12px] text-[#3d4947]">Elite Explorer • Level 7 Traveler</p>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006947] mt-0.5">
-                    <span className="material-symbols-outlined text-[13px]">verified</span> Verified Traveler
-                  </span>
+                  <div className="mt-1">
+                    <VerificationStatus
+                      status={formData.verificationStatus || 'unverified'}
+                      verifiedAt={formData.verifiedAt}
+                      onGetVerified={() => setIsVerificationModalOpen(true)}
+                      variant="compact"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Full Verification Status & Identity Trust banner */}
+              <VerificationStatus
+                status={formData.verificationStatus || 'unverified'}
+                verifiedAt={formData.verifiedAt}
+                onGetVerified={() => setIsVerificationModalOpen(true)}
+                variant="full"
+              />
 
               <div>
                 <label className="text-[12px] font-bold text-[#131b2e] block mb-1">Full Name</label>
@@ -147,19 +175,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="text-[12px] font-bold text-[#131b2e] block mb-1">Home / Starting City</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. New Delhi, India"
-                  value={formData.homeCity}
-                  onChange={(e) => setFormData({ ...formData, homeCity: e.target.value })}
-                  className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl text-[13px] text-[#131b2e] outline-none border border-transparent focus:border-[#00685f]/30"
-                />
-                <span className="text-[11px] text-[#3d4947] mt-1 block">
-                  Used as the default departure city for route intelligence and flight calculations.
-                </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-bold text-[#131b2e] block mb-1">Home / Departure City</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Medinipur, West Bengal"
+                    value={formData.homeCity}
+                    onChange={(e) => setFormData({ ...formData, homeCity: e.target.value })}
+                    className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl text-[13px] text-[#131b2e] outline-none border border-transparent focus:border-[#00685f]/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[12px] font-bold text-[#131b2e] block mb-1">Living State (Hosting Base)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. West Bengal"
+                    value={formData.livingState || ''}
+                    onChange={(e) => setFormData({ ...formData, livingState: e.target.value })}
+                    className="w-full h-10 px-3 bg-[#f2f3ff] rounded-xl text-[13px] text-[#131b2e] outline-none border border-transparent focus:border-[#00685f]/30"
+                  />
+                </div>
               </div>
 
               <div>
@@ -301,6 +339,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </form>
       </div>
+
+      <VerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        userId="user_current"
+        userName={formData.name}
+        defaultLivingState={formData.livingState || 'West Bengal'}
+        defaultLivingCity={formData.homeCity || 'Medinipur'}
+        onSubmitted={() => {
+          const profile = getStoredUserProfile();
+          setFormData((prev) => ({
+            ...prev,
+            verificationStatus: profile.verificationStatus,
+            verifiedAt: profile.verifiedAt,
+          }));
+        }}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };
